@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HyperVisualizer Pro | N-Dimension Equation Visualizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/expr-eval@2.0.2/dist/bundle.min.js"></script>
+</head>
+<body>
+    <canvas id="gl-canvas"></canvas>
+
+    <div class="overlay-top-right">
+        <div class="hud-card">
+            <span>FPS</span><b id="fps-counter">60</b>
+        </div>
+        <div class="hud-card">
+            <span>EQ</span><b id="active-equation">sin(x*2)...</b>
+        </div>
+    </div>
+
+    <div id="toast-area"></div>
+
+    <aside>
+        <header>
+            <h1>
+                <div class="logo-icon"></div>
+                HyperCalc Pro
+            </h1>
+            <div class="subtitle">N-Dimension Equation Visualizer</div>
+        </header>
+
+        <div class="controls-container">
+            <!-- Equation -->
+            <div class="panel-section">
+                <div class="panel-title">Equation Compiler</div>
+                <div class="input-group">
+                    <label>Math Expression</label>
+                    <div class="code-editor">
+                        <textarea id="eq-input" spellcheck="false">sin(x*2) * cos(y*2) + sin(z + t)</textarea>
+                    </div>
+                    <div class="variables-hint">
+                        Vars: <span class="var-tag">x</span> <span class="var-tag">y</span> <span class="var-tag">z</span> <span class="var-tag">t</span> <span class="var-tag">r</span>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Target</label>
+                    <select id="eq-target">
+                        <option value="color">Color Mapping</option>
+                        <option value="displace">Spatial Displacement</option>
+                        <option value="size">Particle Size</option>
+                    </select>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn-primary" id="btn-compile">Compile & Run</button>
+                    <button class="btn-secondary" id="btn-validate">Check Syntax</button>
+                </div>
+
+                <div class="preset-buttons">
+                    <button class="btn-ghost" data-preset="wave">Sine Wave</button>
+                    <button class="btn-ghost" data-preset="ripple">Ripple</button>
+                    <button class="btn-ghost" data-preset="noise">Noise</button>
+                    <button class="btn-ghost" data-preset="tunnel">Tunnel</button>
+                </div>
+            </div>
+
+            <!-- Simulation -->
+            <div class="panel-section">
+                <div class="panel-title">Simulation</div>
+                <div class="input-group">
+                    <label>Dimensions <span id="dim-display" class="val-display">4D</span></label>
+                    <input type="range" id="dim-slider" min="3" max="6" value="4" step="1">
+                </div>
+                <div class="input-group">
+                    <label>Particle Count <span id="count-display" class="val-display">2000</span></label>
+                    <input type="range" id="count-slider" min="100" max="5000" value="2000" step="100">
+                </div>
+                <div class="input-group">
+                    <label>Geometry</label>
+                    <select id="shape-select">
+                        <option value="cloud">Neutron Cloud</option>
+                        <option value="sphere">Hypersphere</option>
+                        <option value="cube">Hypercube</option>
+                        <option value="torus">Torus</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Visuals & Time -->
+            <div class="panel-section">
+                <div class="panel-title">Visuals & Time</div>
+                <div class="input-group">
+                    <label>Time Scale <span id="time-display" class="val-display">1.0</span></label>
+                    <input type="range" id="time-slider" min="0" max="5" value="1.0" step="0.1">
+                </div>
+                <div class="input-group">
+                    <label>Rotation Speed</label>
+                    <input type="range" id="rot-slider" min="0" max="2" value="0.5" step="0.1">
+                </div>
+                <div class="btn-group">
+                    <button class="btn-secondary" id="reset-camera">Reset Camera</button>
+                    <button class="btn-secondary" id="toggle-pause">Pause/Play</button>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <script src="app.js"></script>
+</body>
+</html>
