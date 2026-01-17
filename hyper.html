@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>HyperCalc Pro – Simple N-D Visualizer</title>
+<title>HyperCalc Pro – Fixed Version</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://unpkg.com/expr-eval@2.0.2/dist/bundle.min.js"></script>
 <style>
     :root {
         --bg: #000;
-        --panel: rgba(20,20,40,0.8);
+        --panel: rgba(20,20,40,0.85);
         --primary: #00ffcc;
         --accent: #ff00aa;
         --text: #eee;
@@ -23,14 +23,15 @@
         overflow:hidden;
         display:flex;
     }
-    canvas {
+    #canvas {
         position:absolute;
         inset:0;
         width:100%;
         height:100%;
+        background:#000;
     }
     aside {
-        width:360px;
+        width:340px;
         background:var(--panel);
         backdrop-filter:blur(12px);
         padding:20px;
@@ -42,10 +43,10 @@
         margin:0 0 8px;
         color:var(--primary);
     }
-    .subtitle { font-size:0.9rem; color:var(--muted); }
+    .subtitle { font-size:0.9rem; color:var(--muted); margin-bottom:16px; }
     textarea {
         width:100%;
-        height:80px;
+        height:70px;
         background:#111;
         border:1px solid #444;
         color:#ffcc00;
@@ -54,7 +55,7 @@
         border-radius:6px;
         resize:none;
     }
-    select, input[type=range] {
+    select, input[type=range], button {
         width:100%;
         margin:8px 0;
         padding:8px;
@@ -64,10 +65,6 @@
         border-radius:6px;
     }
     button {
-        padding:8px 16px;
-        margin:4px 6px 4px 0;
-        border:none;
-        border-radius:6px;
         background:var(--primary);
         color:black;
         font-weight:bold;
@@ -76,43 +73,43 @@
     button.secondary { background:#444; color:white; }
     .hud {
         position:absolute;
-        top:16px;
-        right:16px;
-        background:rgba(0,0,0,0.6);
+        top:12px;
+        right:12px;
+        background:rgba(0,0,0,0.7);
         backdrop-filter:blur(8px);
-        padding:8px 12px;
-        border-radius:8px;
+        padding:6px 12px;
+        border-radius:6px;
         font-family:monospace;
-        font-size:0.9rem;
+        font-size:0.85rem;
     }
-    .toast {
+    #toast {
         position:fixed;
-        bottom:20px;
-        right:20px;
-        background:rgba(0,0,0,0.8);
+        bottom:16px;
+        right:16px;
+        background:rgba(0,0,0,0.9);
         color:white;
-        padding:12px 20px;
-        border-radius:8px;
+        padding:10px 16px;
+        border-radius:6px;
         z-index:100;
-        animation:fadeout 3s forwards;
+        opacity:0;
+        transition:opacity 0.4s;
     }
-    @keyframes fadeout { to { opacity:0; transform:translateY(20px); } }
 </style>
 </head>
 <body>
 
-<canvas id="c"></canvas>
+<canvas id="canvas"></canvas>
 
 <aside>
     <h1>HyperCalc Pro</h1>
-    <div class="subtitle">Simple N-D Equation Visualizer</div>
-
-    <div style="margin:20px 0">
-        <strong>Equation</strong><br>
-        <textarea id="eq">sin(x*2) * cos(y*2) + sin(z + t)</textarea>
-    </div>
+    <div class="subtitle">Simple N-D Visualizer</div>
 
     <div style="margin:16px 0">
+        <strong>Equation</strong><br>
+        <textarea id="equation">sin(x*2)*cos(y*2)+sin(z+t)</textarea>
+    </div>
+
+    <div style="margin:12px 0">
         <strong>Target</strong>
         <select id="target">
             <option value="color">Color</option>
@@ -121,47 +118,67 @@
         </select>
     </div>
 
-    <button id="compile">Compile & Run</button>
-    <button class="secondary" id="validate">Check Syntax</button>
+    <div style="margin:16px 0">
+        <button id="compile">Compile & Run</button>
+        <button class="secondary" id="validate">Check Syntax</button>
+    </div>
 
-    <div style="margin-top:16px">
+    <div style="margin-top:12px">
         <strong>Presets:</strong><br>
-        <button class="secondary" data-eq="sin(x*y - t) + cos(z*t)">Wave</button>
+        <button class="secondary" data-eq="sin(x*y-t)+cos(z*t)">Wave</button>
         <button class="secondary" data-eq="sin(sqrt(x*x+y*y)-t*3)">Ripple</button>
         <button class="secondary" data-eq="sin(x*3)+sin(y*3)+sin(z*3)">Noise</button>
     </div>
 
-    <div style="margin:24px 0 12px">Dimensions: <span id="dimv">4</span>D</div>
-    <input type="range" id="dim" min="3" max="6" value="4" step="1">
+    <div style="margin:20px 0 8px">Dimensions: <span id="dim">4</span>D</div>
+    <input type="range" id="dims" min="3" max="6" value="4" step="1">
 
-    <div style="margin:16px 0 12px">Particles: <span id="countv">1500</span></div>
-    <input type="range" id="count" min="500" max="4000" value="1500" step="100">
+    <div style="margin:12px 0 8px">Particles: <span id="pcount">1200</span></div>
+    <input type="range" id="pcount-slider" min="400" max="3000" value="1200" step="100">
 
-    <div style="margin:16px 0 12px">Time speed: <span id="timev">1.0</span></div>
-    <input type="range" id="timespeed" min="0" max="4" value="1" step="0.2">
+    <div style="margin:12px 0 8px">Time: <span id="tspeed">1.0</span></div>
+    <input type="range" id="time-slider" min="0" max="5" value="1" step="0.2">
 
-    <button class="secondary" id="pause">Pause</button>
-    <button class="secondary" id="reset">Reset View</button>
+    <div style="margin-top:16px">
+        <button class="secondary" id="pause">Pause</button>
+        <button class="secondary" id="reset">Reset View</button>
+    </div>
 </aside>
 
 <div class="hud">
-    FPS: <span id="fps">60</span> • <span id="eqshow">sin(x*2)...</span>
+    FPS: <span id="fps">—</span> • <span id="eqtext">sin(x*2)...</span>
 </div>
+
+<div id="toast"></div>
 
 <script>
 // ──────────────────────────────────────────────
-const c = document.getElementById('c');
-const ctx = c.getContext('2d');
+const canvas = document.getElementById('canvas');
+const ctx = canvas?.getContext('2d');
+
+if (!canvas || !ctx) {
+    document.body.innerHTML += '<div style="color:red;position:fixed;top:20px;left:20px;background:#300;padding:12px;border-radius:8px;">ERROR: Canvas not supported or failed to initialize</div>';
+    throw new Error("Canvas failed");
+}
+
+let W, H;
+let particles = [];
+let time = 0;
+let rotX = 0, rotY = 0, rotXW = 0;
+let paused = false;
+
+let equation = "sin(x*2)*cos(y*2)+sin(z+t)";
+let target = "color";
+let dimensions = 4;
+let particleCount = 1200;
+let timeScale = 1.0;
+
 const parser = new exprEval.Parser();
 
-let W,H, particles = [], time = 0, rotX=0, rotY=0, rotXW=0;
-let paused = false, equation = "sin(x*2) * cos(y*2) + sin(z + t)";
-let target = "color", dimensions = 4, count = 1500, timeScale = 1;
-
-// Resize
+// Resize handler
 function resize() {
-    W = c.width = window.innerWidth;
-    H = c.height = window.innerHeight;
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
 }
 window.addEventListener('resize', resize);
 resize();
@@ -169,184 +186,198 @@ resize();
 // Generate particles
 function createParticles() {
     particles = [];
-    for(let i=0; i<count; i++){
-        let p = {x:0,y:0,z:0,w:0};
-        p.x = (Math.random()-0.5)*10;
-        p.y = (Math.random()-0.5)*10;
-        p.z = (Math.random()-0.5)*10;
-        p.w = (Math.random()-0.5)*5;
-        particles.push(p);
+    for(let i = 0; i < particleCount; i++) {
+        particles.push({
+            x: (Math.random()-0.5)*10,
+            y: (Math.random()-0.5)*10,
+            z: (Math.random()-0.5)*10,
+            w: (Math.random()-0.5)*5
+        });
     }
 }
 createParticles();
 
-// Evaluate safely
-function evalEq(x,y,z,t,r){
-    try{
-        let v = parser.evaluate(equation, {x,y,z,t,r});
-        return isFinite(v)&&!isNaN(v) ? v : 0;
-    }catch{ return 0; }
+// Safe evaluation
+function evalSafe(x,y,z,t,r) {
+    try {
+        const v = parser.evaluate(equation, {x,y,z,t,r});
+        return isFinite(v) && !isNaN(v) ? v : 0;
+    } catch {
+        return 0;
+    }
 }
 
-// Draw frame
-function draw(){
-    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+// Main draw loop
+function draw() {
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
     ctx.fillRect(0,0,W,H);
 
-    if(!paused){
-        time += 0.02 * timeScale;
-        rotXW += 0.004;
+    if (!paused) {
+        time += 0.018 * timeScale;
+        rotXW += 0.0035;
     }
 
     ctx.globalCompositeOperation = 'lighter';
 
     const proj = [];
-    for(const p of particles){
-        let r = Math.sqrt(p.x*p.x + p.y*p.y + p.z*p.z);
-        let v = evalEq(p.x,p.y,p.z,time,r);
 
-        let tx=p.x, ty=p.y, tz=p.z, tw=p.w;
+    for (const p of particles) {
+        const r = Math.sqrt(p.x*p.x + p.y*p.y + p.z*p.z);
+        let v = evalSafe(p.x, p.y, p.z, time, r);
 
-        if(target==='displace'){
-            let d = Math.max(-5,Math.min(5,v));
-            tz += d; tw += d;
+        let tx = p.x, ty = p.y, tz = p.z, tw = p.w;
+
+        if (target === 'displace') {
+            const d = Math.max(-5, Math.min(5, v));
+            tz += d;
+            tw += d;
         }
 
-        // 4D rotation
-        if(dimensions>=4){
-            let c = Math.cos(rotXW), s = Math.sin(rotXW);
-            let nx = tx*c - tw*s;
-            let nw = tx*s + tw*c;
-            tx=nx; tw=nw;
+        if (dimensions >= 4) {
+            const c = Math.cos(rotXW);
+            const s = Math.sin(rotXW);
+            const nx = tx * c - tw * s;
+            const nw = tx * s + tw * c;
+            tx = nx;
+            tw = nw;
         }
 
-        // 4D → 3D perspective
         const d4 = 6;
-        const s3 = dimensions>=4 ? d4/(d4-tw) : 1;
+        const s3 = dimensions >= 4 ? d4 / (d4 - tw) : 1;
 
-        let x3=tx*s3, y3=ty*s3, z3=tz*s3;
+        let x3 = tx * s3;
+        let y3 = ty * s3;
+        let z3 = tz * s3;
 
-        // Camera rotation (simple)
-        let rx = x3*Math.cos(rotY) - z3*Math.sin(rotY);
-        let rz = x3*Math.sin(rotY) + z3*Math.cos(rotY);
-        x3=rx; z3=rz;
+        // Simple camera rotation
+        let rx = x3 * Math.cos(rotY) - z3 * Math.sin(rotY);
+        let rz = x3 * Math.sin(rotY) + z3 * Math.cos(rotY);
+        x3 = rx; z3 = rz;
 
-        let ry = y3*Math.cos(rotX) - z3*Math.sin(rotX);
-        rz = y3*Math.sin(rotX) + z3*Math.cos(rotX);
-        y3=ry; z3=rz;
+        let ry = y3 * Math.cos(rotX) - z3 * Math.sin(rotX);
+        rz = y3 * Math.sin(rotX) + z3 * Math.cos(rotX);
+        y3 = ry; z3 = rz;
 
         const fov = 900;
         const scale = fov / (8 + z3);
 
-        if(scale>0){
+        if (scale > 0) {
             proj.push({
-                x: W/2 + x3*scale,
-                y: H/2 + y3*scale,
+                x: Math.round(W/2 + x3 * scale),
+                y: Math.round(H/2 + y3 * scale),
                 depth: z3,
-                scale: scale*s3,
+                scale: scale * s3,
                 v
             });
         }
     }
 
-    proj.sort((a,b)=>b.depth-a.depth);
+    proj.sort((a,b) => b.depth - a.depth);
 
-    for(const p of proj){
-        let alpha = Math.max(0.2, 1 - p.depth/30);
-        let sz = 2.5 * p.scale;
+    for (const p of proj) {
+        let alpha = Math.max(0.18, 1 - p.depth/35);
+        let sz = 2.8 * p.scale;
 
-        if(target==='size') sz *= Math.max(0.4, Math.abs(p.v)*0.8 + 0.5);
+        if (target === 'size') {
+            sz *= Math.max(0.4, Math.abs(p.v)*0.9 + 0.6);
+        }
 
-        let h=210, s=90, l=65;
-        if(target==='color'){
-            let n = Math.atan(p.v)/Math.PI;
-            h = 200 + n*140;
+        let h = 210, s = 90, l = 65;
+        if (target === 'color') {
+            const n = Math.atan(p.v) / Math.PI;
+            h = 200 + n * 140;
         }
 
         ctx.fillStyle = `hsla(\( {h}, \){s}%,\( {l}%, \){alpha})`;
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = 10;
         ctx.shadowColor = ctx.fillStyle;
 
         ctx.beginPath();
-        ctx.arc(p.x,p.y,sz,0,Math.PI*2);
+        ctx.arc(p.x, p.y, sz, 0, Math.PI*2);
         ctx.fill();
     }
 
     ctx.globalCompositeOperation = 'source-over';
-    ctx.shadowBlur=0;
+    ctx.shadowBlur = 0;
 
-    // FPS
     requestAnimationFrame(draw);
 }
 
+// Start rendering immediately
 draw();
 
 // Controls
-document.getElementById('compile').onclick = ()=>{
-    let txt = document.getElementById('eq').value.trim();
-    try{
+document.getElementById('compile').onclick = () => {
+    const txt = document.getElementById('equation').value.trim();
+    try {
         parser.parse(txt);
         equation = txt;
-        document.getElementById('eqshow').textContent = txt.slice(0,12)+(txt.length>12?'...':'');
-    }catch(e){
-        alert('Invalid equation');
+        document.getElementById('eqtext').textContent = txt.slice(0,12)+(txt.length>12?'...':'');
+    } catch(e) {
+        alert('Invalid equation syntax');
     }
 };
 
-document.getElementById('validate').onclick = ()=>{
-    try{
-        parser.parse(document.getElementById('eq').value);
+document.getElementById('validate').onclick = () => {
+    try {
+        parser.parse(document.getElementById('equation').value);
         alert('Syntax OK');
-    }catch(e){
+    } catch(e) {
         alert('Syntax error');
     }
 };
 
-document.querySelectorAll('[data-eq]').forEach(b=>{
-    b.onclick=()=>{
-        let eq = b.dataset.eq;
-        document.getElementById('eq').value = eq;
+document.querySelectorAll('[data-eq]').forEach(b => {
+    b.onclick = () => {
+        const eq = b.dataset.eq;
+        document.getElementById('equation').value = eq;
         equation = eq;
-        document.getElementById('eqshow').textContent = eq.slice(0,12)+'...';
+        document.getElementById('eqtext').textContent = eq.slice(0,12)+'...';
     };
 });
 
-document.getElementById('target').onchange = e=> target = e.target.value;
-document.getElementById('dim').oninput = e=>{
+document.getElementById('target').onchange = e => target = e.target.value;
+
+document.getElementById('dims').oninput = e => {
     dimensions = +e.target.value;
-    document.getElementById('dimv').textContent = dimensions;
-};
-document.getElementById('count').oninput = e=>{
-    count = +e.target.value;
-    document.getElementById('countv').textContent = count;
-    createParticles();
-};
-document.getElementById('timespeed').oninput = e=>{
-    timeScale = +e.target.value;
-    document.getElementById('timev').textContent = timeScale.toFixed(1);
+    document.getElementById('dim').textContent = dimensions;
 };
 
-document.getElementById('pause').onclick = ()=>{
+document.getElementById('pcount-slider').oninput = e => {
+    particleCount = +e.target.value;
+    document.getElementById('pcount').textContent = particleCount;
+    createParticles();
+};
+
+document.getElementById('time-slider').oninput = e => {
+    timeScale = +e.target.value;
+    document.getElementById('tspeed').textContent = timeScale.toFixed(1);
+};
+
+document.getElementById('pause').onclick = () => {
     paused = !paused;
     document.getElementById('pause').textContent = paused ? 'Play' : 'Pause';
 };
-document.getElementById('reset').onclick = ()=>{
-    rotX=rotY=rotXW=0;
+
+document.getElementById('reset').onclick = () => {
+    rotX = rotY = rotXW = 0;
 };
 
-// Drag rotation
-let drag=false, lx,ly;
-c.onmousedown = e=>{
-    drag=true;
-    lx=e.clientX; ly=e.clientY;
-    c.style.cursor='grabbing';
+// Mouse drag rotation
+let drag = false, lx, ly;
+canvas.onmousedown = e => {
+    drag = true;
+    lx = e.clientX;
+    ly = e.clientY;
+    canvas.style.cursor = 'grabbing';
 };
-window.onmouseup = ()=>{ drag=false; c.style.cursor='grab'; };
-window.onmousemove = e=>{
-    if(!drag) return;
-    rotY += (e.clientX-lx)*0.005;
-    rotX += (e.clientY-ly)*0.005;
-    lx=e.clientX; ly=e.clientY;
+window.onmouseup = () => { drag = false; canvas.style.cursor = 'crosshair'; };
+window.onmousemove = e => {
+    if (!drag) return;
+    rotY += (e.clientX - lx) * 0.005;
+    rotX += (e.clientY - ly) * 0.005;
+    lx = e.clientX;
+    ly = e.clientY;
 };
 </script>
 </body>
